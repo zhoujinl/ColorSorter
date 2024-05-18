@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue.js with Flask</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+<div id="app" class="content">
+    <nav>
+        <div class="logo">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="基于Vue.js">
+            <span></span>
+        </div>
+    </nav>
+    <header>
+        <h1>图片颜色分析提取工具</h1>
+        <p>简洁易用，性能出色，支持PNG、JPEG、GIF格式图片等</p>
+        <div class="buttons">
+          <button class="button" @click="triggerFileInput">上传图片</button>
+        </div>
+    </header>
+
+    <input type="file" ref="fileInput" @change="handleFileUpload" style="display: none;" />
+    <div v-if="message">{{ message }}</div>
+    <div v-if="imageUrl">
+      <img :src="imageUrl" alt="Uploaded Image" />
+    </div>
+
+    <main>
+        <section>
+            <h2>简洁易用</h2>
+            <p>简洁直观的用户界面，易于新用户上手。流畅的操作流程，减少用户等待时间。</p>
+        </section>
+        <section>
+            <h2>性能出色</h2>
+            <p>基于KMeans聚类算法，提高图片处理速度。高稳定性，减少程序崩溃和错误。</p>
+        </section>
+        <section>
+            <h2>灵活多变</h2>
+            <p>丰富的、可渐进式集成的生态系统，可以根据应用需要在库和框架间切换自如。</p>
+        </section>
+    </main>
+
+    <div v-if="loading" class="overlay">
+        <div class="modal">
+            <div class="message">
+                <div class="loader"></div>
+                <span>{{ uploadMessage }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/vue.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/axios.min.js') }}"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            selectedFile: null,
+            message: '',
+            imageUrl: '',
+            loading: false,
+            uploadMessage: "图片上传中..."
+        },
+        methods: {
+            triggerFileInput() {
+                this.$refs.fileInput.click();
+            },
+            handleFileUpload(event) {
+                this.selectedFile = event.target.files[0];
+                this.uploadImage();
+            },
+            uploadImage() {
+                if (!this.selectedFile) {
+                    alert('请选择要上传的图片。');
+                    return;
+                }
+                
+                const fileType = this.selectedFile.type;
+                const fileSize = this.selectedFile.size;
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                const maxSize = 200 * 1024 * 1024; // 200MB
+                
+                if (!allowedTypes.includes(fileType)) {
+                    alert('文件类型不允许。请上传 JPEG, PNG 或 GIF 格式的图片。');
+                    return;
+                }
+                
+                if (fileSize > maxSize) {
+                    alert('文件大小超出限制。请上传小于 200MB 的图片。');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', this.selectedFile);
+                this.loading = true;
+
+                axios.post('/upload', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }).then(response => {
+                    this.imageUrl = response.data.imageUrl;
+                    this.message = '图片上传成功！';
+                }).catch(error => {
+                    console.error('Error:', error);
+                    this.message = '上传图片时出错';
+                    if (error.response) {
+                        this.message += `: ${error.response.data.message}`;
+                    }
+                }).finally(() => {
+                    this.loading = false;
+                });;
+            }
+        }
+    });
+</script>
+</body>
+</html>
